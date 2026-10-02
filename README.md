@@ -20,13 +20,24 @@ import it. Nothing to compile or run.
 2. In ATAK: **Import Manager > Files > Import from SD card**
    (or just open/click the file).
 3. Pick which one:
+   - **`clupa_light.kmz`** (2.6 MB): the four designations people actually
+     use (General Use Area, Enhanced Management Area, Provincial Park,
+     Conservation Reserve) with boundaries generalized to ~100 m. 1,135
+     areas. Imports in seconds and renders smoothly on any phone.
+     Recommended for most users.
    - **`clupa_boundaries.kmz`** (67 MB): all 1,261 Crown land use area
-     boundary polygons, named, with land use designation. Recommended for
-     most users.
-   - **`clupa_full_with_descriptions.kmz`** (70 MB): same boundaries plus the
+     boundary polygons, named, with land use designation, full survey
+     detail. Use when you need every designation category or
+     survey-grade edges.
+   - **`clupa_full_with_descriptions.kmz`** (70 MB): same as above plus the
      full policy text per area (land use intent, permitted uses with
      guidelines). Tap a polygon in ATAK to read its policy. Only pick this
      if you specifically want the policy text loaded on device.
+
+The light file simplifies boundaries: drawn edges may differ from the true
+boundary by up to ~100 m along coastlines and riverbanks (straight survey
+lines on land are kept exact). For navigation and orientation that is
+invisible; for legal boundary work use the full-detail files.
 
 Device note: the layer is ~10.8 million polygon vertices (Ontario is large
 and shape-rich). Import and first render take a while on phones; after the
