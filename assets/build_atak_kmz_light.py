@@ -31,6 +31,21 @@ DEFAULT_DESIGNATIONS = {
     "Conservation Reserve",
 }
 
+# aabbggrr fill colors + matching outlines; folder style per designation
+STYLES = {
+    "General Use Area":         ("clupa-gu",  "332e8b46", "ff2e8b46"),
+    "Enhanced Management Area": ("clupa-ema", "3300a5c7", "ff00a5c7"),
+    "Provincial Park":          ("clupa-pp",  "40e68b22", "ffe68b22"),
+    "Conservation Reserve":     ("clupa-cr",  "40b060a0", "ffb060a0"),
+}
+
+
+def style_block(style_id, fill, outline):
+    return (f'<Style id="{style_id}">'
+            f'<LineStyle><color>{outline}</color><width>2</width></LineStyle>'
+            f'<PolyStyle><color>{fill}</color><fill>1</fill><outline>1</outline></PolyStyle>'
+            f'</Style>')
+
 
 def load_json(p):
     return json.load(open(p, encoding="utf-8"))
@@ -197,16 +212,19 @@ def main():
             if ident:
                 perm.setdefault(ident, []).append(p)
 
-    placemarks = []
+    folders = {d: [] for d in DEFAULT_DESIGNATIONS}
     kept = dropped_desig = dropped_simplify = 0
     vin = vout = 0
     descs = 0
+    folder_counts = {d: 0 for d in DEFAULT_DESIGNATIONS}
     for f in bound["features"]:
         p = f["properties"]
         desig = p.get("DESIGNATION_ENG") or ""
         if desig not in DEFAULT_DESIGNATIONS:
             dropped_desig += 1
             continue
+        folder = desig if desig in STYLES else "Other"
+        folder_counts[folder] += 1
         g = f["geometry"]
         vin += count_verts(g)
         if tol > 0:
@@ -229,23 +247,26 @@ def main():
         lines = ["<Placemark>", f"<name>{kml_val(name)}</name>"]
         if desc:
             lines.append(f"<description><![CDATA[{html.escape(clean_text(desc))}]]></description>")
-        lines.append("<styleUrl>#clupa</styleUrl>")
+        lines.append(f"<styleUrl>#{STYLES[folder][0]}</styleUrl>")
         if pid:
             lines.append(
                 f"<ExtendedData><Data name=\"policy_id\"><value>{kml_val(pid)}</value></Data>"
                 f"<Data name=\"designation\"><value>{kml_val(desig)}</value></Data></ExtendedData>")
         lines.append(geom_kml(g))
         lines.append("</Placemark>")
-        placemarks.append("".join(lines))
+        folders[desig].append("".join(lines))
 
+    styles = "".join(style_block(sid, fill, outline) for sid, fill, outline in STYLES.values())
+    body = []
+    for d in DEFAULT_DESIGNATIONS:
+        if not folders[d]:
+            continue
+        body.append(f"<Folder><name>{kml_val(d)}</name><open>0</open>"
+                    + "".join(folders[d]) + "</Folder>")
     kml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<kml xmlns="http://www.opengis.net/kml/2.2">'
            '<Document><name>Ontario CLUPA (reduced: 4 designations)</name>'
-           '<Style id="clupa">'
-           '<LineStyle><color>660000ff</color><width>2</width></LineStyle>'
-           '<PolyStyle><color>400088cc</color><fill>1</fill><outline>1</outline></PolyStyle>'
-           '</Style>'
-           + "".join(placemarks) + '</Document></kml>')
+           + styles + "".join(body) + '</Document></kml>')
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("doc.kml", kml)

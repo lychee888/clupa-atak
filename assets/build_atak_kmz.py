@@ -5,11 +5,16 @@ Usage:
   python build_atak_kmz.py --descriptions  # embed policy text per polygon
                                            # requires layer8 + layer13; aborts if missing
 
-The output KMZ opens in ATAK via Import > File. Polygons keep their name,
-policy_id and designation; with --descriptions the KML description contains
-the full CLUPA policy text (land area description, land use intent,
-permitted uses preface/addendum, permitted uses with guidelines, and the
-official policy URL).
+Organization:
+- Placemarks are grouped in Folders by designation so ATAK's layer manager
+  lets users toggle General Use / Enhanced Management / Provincial Park /
+  Conservation Reserve etc. independently.
+- Each designation gets its own color style.
+- Areas whose designation is not one of the four main ones (and areas with
+  no designation) fall into an "Other" folder; nothing is dropped.
+
+Style colors (KML aabbggrr): General Use green, Enhanced Management amber,
+Provincial Park blue, Conservation Reserve purple, Other grey.
 
 Field notes:
 - Raw service fields are NAME_ENG / DESIGNATION_ENG; the distilled file
@@ -33,25 +38,32 @@ L4 = os.path.join(ROOT, "assets", "layer4.geojson")    # overlays
 OUT_BOUND = os.path.join(ROOT, "dist", "clupa_boundaries.kmz")
 OUT_FULL = os.path.join(ROOT, "dist", "clupa_full_with_descriptions.kmz")
 
+# fill colors are aabbggrr; outline keyed the same way
+STYLES = {
+    "General Use Area":          ("clupa-gu",  "332e8b46", "ff2e8b46"),
+    "Enhanced Management Area":  ("clupa-ema", "3300a5c7", "ff00a5c7"),
+    "Provincial Park":           ("clupa-pp",  "40e68b22", "ffe68b22"),
+    "Conservation Reserve":      ("clupa-cr",  "40b060a0", "ffb060a0"),
+    "Other":                     ("clupa-ot",  "30888888", "ff666666"),
+}
+FOLDER_ORDER = list(STYLES)
+
 
 def load_json(p):
     return json.load(open(p, encoding="utf-8"))
 
 
 def kml_val(v):
-    """None-safe, type-safe escape."""
     if v is None:
         return ""
     return escape(str(v))
 
 
 def clean_text(s):
-    """Strip non-XML-safe control chars (source data contains \\x02 etc.)."""
     return "".join(ch for ch in s if ch >= " " or ch in "\n\r\t")
 
 
 def newest_row(rows):
-    """Pick the row with the latest DATE_POLICY_LAST_UPDATED (ms epoch)."""
     def key(p):
         v = p.get("DATE_POLICY_LAST_UPDATED")
         return v if isinstance(v, (int, float)) else 0
@@ -60,23 +72,15 @@ def newest_row(rows):
 
 def build_policy_text(policy_row, perm_rows):
     lines = []
-    land = policy_row.get("LAND_AREA_DESCR_ENG") or ""
-    intent = policy_row.get("LAND_USE_INTENT_DESCR_ENG") or ""
-    preface = policy_row.get("PERMITTED_USES_PREFACE_ENG") or ""
-    addendum = policy_row.get("PERMITTED_USES_ADDENDUM_ENG") or ""
-    url = policy_row.get("URL_ENG") or ""
-    if land:
-        lines.append("LAND AREA DESCRIPTION:")
-        lines.append(land.strip())
-        lines.append("")
-    if intent:
-        lines.append("LAND USE INTENT:")
-        lines.append(intent.strip())
-        lines.append("")
-    if preface:
-        lines.append("PERMITTED USES PREFACE:")
-        lines.append(preface.strip())
-        lines.append("")
+    for label, field in (("LAND AREA DESCRIPTION", "LAND_AREA_DESCR_ENG"),
+                         ("LAND USE INTENT", "LAND_USE_INTENT_DESCR_ENG"),
+                         ("PERMITTED USES PREFACE", "PERMITTED_USES_PREFACE_ENG"),
+                         ("PERMITTED USES ADDENDUM", "PERMITTED_USES_ADDENDUM_ENG")):
+        v = (policy_row.get(field) or "").strip()
+        if v:
+            lines.append(f"{label}:")
+            lines.append(v)
+            lines.append("")
     if perm_rows:
         lines.append("PERMITTED USES:")
         for r in perm_rows:
@@ -87,10 +91,7 @@ def build_policy_text(policy_row, perm_rows):
             if guidelines:
                 lines.append(f"  {guidelines}")
         lines.append("")
-    if addendum:
-        lines.append("PERMITTED USES ADDENDUM:")
-        lines.append(addendum.strip())
-        lines.append("")
+    url = policy_row.get("URL_ENG") or ""
     if url:
         lines.append("REFERENCE:")
         lines.append(url)
@@ -98,7 +99,6 @@ def build_policy_text(policy_row, perm_rows):
 
 
 def geom_kml(geom):
-    """Convert GeoJSON Polygon or MultiPolygon to a KML string body."""
     parts = []
     def coord_line(ring):
         return " ".join(f"{c[0]:.6f},{c[1]:.6f}" for c in ring)
@@ -119,6 +119,17 @@ def geom_kml(geom):
     else:
         raise ValueError(f"unsupported geom type {t}")
     return "".join(parts)
+
+
+def style_block(style_id, fill, outline):
+    return (f'<Style id="{style_id}">'
+            f'<LineStyle><color>{outline}</color><width>2</width></LineStyle>'
+            f'<PolyStyle><color>{fill}</color><fill>1</fill><outline>1</outline></PolyStyle>'
+            f'</Style>')
+
+
+def folder_for(desig):
+    return desig if desig in STYLES else "Other"
 
 
 def build_kmz(out_path, with_descriptions):
@@ -153,15 +164,18 @@ def build_kmz(out_path, with_descriptions):
                 perm_by_policy.setdefault(ident, []).append(p)
                 n_perm_rows += 1
 
-    placemarks = []
-    named = 0
-    descs = 0
+    folders = {name: [] for name in FOLDER_ORDER}
+    counts = {name: 0 for name in FOLDER_ORDER}
+    named = descs = 0
     for f in bound["features"]:
         p = f["properties"]
         pid = p.get("POLICY_IDENT") or p.get("policy_id")
         name = p.get("NAME_ENG") or p.get("name") or pid or "CLUPA area"
         if name and name != pid:
             named += 1
+        desig = p.get("DESIGNATION_ENG") or p.get("designation") or ""
+        folder = folder_for(desig)
+        counts[folder] += 1
         desc = ""
         if with_descriptions:
             prow = policies.get(pid)
@@ -174,32 +188,37 @@ def build_kmz(out_path, with_descriptions):
         if desc:
             lines.append(f"<description><![CDATA[{html.escape(clean_text(desc))}]]></description>")
             descs += 1
-        lines.append("<styleUrl>#clupa</styleUrl>")
+        lines.append(f"<styleUrl>#{STYLES[folder][0]}</styleUrl>")
         if pid:
             lines.append(
                 f"<ExtendedData>"
                 f"<Data name=\"policy_id\"><value>{kml_val(pid)}</value></Data>"
-                f"<Data name=\"designation\"><value>{kml_val(p.get('DESIGNATION_ENG') or p.get('designation') or '')}</value></Data>"
+                f"<Data name=\"designation\"><value>{kml_val(desig)}</value></Data>"
                 f"</ExtendedData>")
         lines.append(geom_kml(f["geometry"]))
         lines.append("</Placemark>")
-        placemarks.append("".join(lines))
+        folders[folder].append("".join(lines))
 
-    kml = ('<?xml version="1.0" encoding="UTF-8"?>'
-           '<kml xmlns="http://www.opengis.net/kml/2.2">'
-           '<Document><name>Ontario Crown Land Use Policy Areas</name>'
-           '<Style id="clupa">'
-           '<LineStyle><color>660000ff</color><width>2</width></LineStyle>'
-           '<PolyStyle><color>400088cc</color><fill>1</fill><outline>1</outline></PolyStyle>'
-           '</Style>'
-           + "".join(placemarks) +
-           '</Document></kml>')
+    body = []
+    for folder in FOLDER_ORDER:
+        if not folders[folder]:
+            continue
+        body.append(f"<Folder><name>{kml_val(folder)}</name><open>0</open>"
+                    + "".join(folders[folder]) + "</Folder>")
+
+    styles = "".join(style_block(sid, fill, outline) for sid, fill, outline in STYLES.values())
+    kml_str = ('<?xml version="1.0" encoding="UTF-8"?>'
+               '<kml xmlns="http://www.opengis.net/kml/2.2">'
+               '<Document><name>Ontario Crown Land Use Policy Areas</name>'
+               + styles + "".join(body) +
+               '</Document></kml>')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as z:
-        z.writestr("doc.kml", kml)
+        z.writestr("doc.kml", kml_str)
     print(f"WROTE {out_path} {os.path.getsize(out_path)} bytes "
-          f"features={len(placemarks)} named={named} descriptions={descs} "
+          f"features={sum(counts.values())} named={named} descriptions={descs} "
           f"permitted_use_rows={n_perm_rows}")
+    print("folder counts:", counts)
 
 
 if __name__ == "__main__":
