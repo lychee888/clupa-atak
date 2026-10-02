@@ -1,0 +1,14 @@
+# build outputs
+dist/
+
+# raw downloaded layers (large; user regenerates with assets/fetch_layer.py)
+assets/layer*.geojson
+assets/layer*.json
+
+# python
+__pycache__/
+*.pyc
+
+# os
+.DS_Store
+Thumbs.db
