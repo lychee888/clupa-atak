@@ -145,6 +145,8 @@ def build_kmz(out_path, with_descriptions):
             lines.append(f"<ExtendedData><Data name=\"policy_id\"><value>{kml_val(pid)}</value></Data>"
                          f"<Data name=\"designation\"><value>{kml_val(p.get('designation',''))}</value></Data></ExtendedData>")
         if desc:
+            # strip non-XML-safe control chars (source data contains \x02 etc.)
+            desc = "".join(ch for ch in desc if ch >= " " or ch in "\n\r\t")
             lines.append(f"<description><![CDATA[{html.escape(desc)}]]></description>")
         lines.append(geom_kml(f["geometry"]))
         lines.append("</Placemark>")
