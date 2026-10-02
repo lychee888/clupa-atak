@@ -6,7 +6,7 @@ Crown Land Use Policy Area boundaries from the [Crown Land Use Policy Atlas
 optional per-area policy descriptions (land use intent, permitted uses and
 guidelines).  Since v1.2, the same format is also built for eight other
 provinces' Crown / public land layers (BC, AB, SK, MB, QC, NB, NS, NL; PEI
-unavailable — see the province table).
+unavailable- see the province table).
 
 Everything is built with Python 3 stdlib only (no pip dependencies) from
 Ontario's open ArcGIS REST service. Data remains Crown copyright, Ontario
@@ -63,7 +63,7 @@ conservation/reserve, grey = other.
 | Code | Province | Source dataset | Full (`_crown_full.kmz` size) | Light (`_crown_light.kmz` size) | Notes |
 |------|----------|----------------|------------------------------|--------------------------------|-------|
 | `bc` | British Columbia | TANTALIS Crown Tenures (WFS, openmaps.gov.bc.ca) | 77.9 MB / 66,400 polygons | 7.1 MB / 52,794 polygons | All active Crown tenures incl. licences, leases, ROWs. This is tenure data, not "public land", so it shows where a *tenure* exists, not which land is vacant public. |
-| `ab` | Alberta | Green/White Area (ASRD administrative area MapServer) | 0.8 MB / 39 polygons | 0.08 MB / 39 polygons | Free equivalent of Altalis DIDs. **Green Area** = unpatented / vacant Crown land, **White Area** = surveyed, mostly private/sold. Two polygons each; big, not survey-detailed. |
+| `ab` | Alberta | Green/White Area (ASRD administrative area MapServer) | 0.8 MB / 39 polygons | 0.08 MB / 39 polygons | Free equivalent of Altalis DIDs. **Green Area** = unpatented / vacant Crown land, **White Area** = surveyed, mostly private/sold. Two polygons each. Big, not survey-detailed. |
 | `sk` | Saskatchewan | Agricultural Crown Land quarter sections (gis.saskatchewan.ca) | 5.9 MB / 59,985 polygons | 3.9 MB / 59,982 polygons | Covers **agricultural** Crown land only (quarter sections). Forestry/Crown-at-large parcels are not published as free data. |
 | `mb` | Manitoba | DataMB ArcGIS feature services (Parks + Provincial Forests + Cottage Lots + Wildlife Management Areas) | 1.8 MB / 307 polygons | 0.12 MB / 306 polygons | A public-land *portfolio* assembled from four free services. Manitoba does not publish an all-in-one "Crown land" polygon layer as open data. |
 | `qc` | Quebec | PATP (Plans d'affectation du territoire public) shapefile | 68.2 MB / 7,874 polygons | 3.0 MB / 5,355 polygons | Vocation-based affectation of the public domain (utilisation multiple / protection stricte etc.). Coordinates converted from EPSG:32198 to WGS84. |
