@@ -12,3 +12,6 @@ __pycache__/
 # os
 .DS_Store
 Thumbs.db
+
+# provincial raw (large; user regenerates with assets/provinces/fetch_province.py)
+assets/provinces/raw/
