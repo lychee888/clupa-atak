@@ -1,4 +1,4 @@
-# CLUPA for ATAK (Ontario Crown Land Use Policy Areas)
+# CLUPA for ATAK (Ontario Crown Land Use Policy Areas) (Compiled 2026-10-01)
 
 Ready-to-import map data for [ATAK](https://atakwiki.org/) showing Ontario Crown
 Land Use Policy Area boundaries from the [Crown Land Use Policy Atlas
@@ -9,7 +9,7 @@ Everything is built with Python 3 stdlib only (no pip dependencies) from
 Ontario's open ArcGIS REST service. Data remains Crown copyright, Ontario
 Ministry of Natural Resources; open-data licensed (see Source & licence).
 
-## Import into ATAK (no build needed)
+## Import into ATAK
 
 Most users: just download a pre-built file from the
 [releases page](https://github.com/lychee888/clupa-atak/releases/latest) and
@@ -20,11 +20,10 @@ import it. Nothing to compile or run.
    (or just open/click the file).
 3. Pick which one:
    - **`clupa_boundaries.kmz`** (67 MB): all 1,261 Crown land use area
-     boundary polygons, named. Recommended for most users.
+     boundary polygons, named.
    - **`clupa_full_with_descriptions.kmz`** (70 MB): same boundaries plus the
      full policy text per area (land use intent, permitted uses with
-     guidelines). Tap a polygon in ATAK to read its policy. Only pick this
-     if you specifically want the policy text loaded on device.
+     guidelines). Tap a polygon in ATAK to read its policy.
 
 ## Repo layout
 
