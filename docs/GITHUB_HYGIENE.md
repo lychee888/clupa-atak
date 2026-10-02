@@ -1,6 +1,6 @@
 # GitHub hygiene for this repo
 
-- Repo: https://github.com/jarvis959/clupa-atak (create, then push below)
+- Repo: https://github.com/lychee888/clupa-atak (create, then push below)
 - Do NOT commit `assets/layer*.geojson` (~490 MB raw) or `dist/*.kmz`
   (~67 MB each) - both are gitignored; users regenerate with
   `python assets/fetch_layer.py 5 8 13` then the build scripts.

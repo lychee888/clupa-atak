@@ -2,17 +2,19 @@
 
 - Geometry-bearing layers use f=geojson; the server chokes on large pages,
   so page size stays small.
-- Attribute-only tables are fetched as esri JSON (f=json) and converted
-  here into a FeatureCollection with null geometry.
+- Attribute-only tables are fetched as esri JSON and converted into a
+  FeatureCollection with null geometry.
+- Pagination continues while the service reports exceededTransferLimit
+  (a short page alone is NOT a reliable end signal), and stops on
+  feature-count mismatch vs the service count.
+- SSL verification is ON (default context). The service presents a valid
+  certificate; do not disable verification.
 """
-import json, os, ssl, sys, time
+import json, os, sys, time
 import urllib.request
 
 BASE = "https://ws.lioservices.lrc.gov.on.ca/arcgis2/rest/services/LIO_OPEN_DATA/LIO_Open06/MapServer"
 OUTDIR = os.path.dirname(os.path.abspath(__file__))
-CTX = ssl.create_default_context()
-CTX.check_hostname = False
-CTX.verify_mode = ssl.CERT_NONE
 
 GEOMETRY_LAYERS = {5, 4}  # feature layers; all others are attribute tables
 
@@ -22,7 +24,7 @@ def curl(url, tries=5):
     for i in range(tries):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            data = urllib.request.urlopen(req, context=CTX, timeout=240).read().decode("utf-8", "replace")
+            data = urllib.request.urlopen(req, timeout=240).read().decode("utf-8", "replace")
             if data.lstrip()[:1] == "<":
                 raise ValueError("HTML Application Error page from server")
             return json.loads(data)
@@ -41,10 +43,17 @@ def esri_table_to_geojson(d):
     return {"type": "FeatureCollection", "features": feats}
 
 
+def service_count(layer):
+    d = curl(f"{BASE}/{layer}/query?where=1%3D1&returnCountOnly=true&f=json")
+    return d.get("count")
+
+
 def fetch_layer(layer, page=None):
     with_geometry = layer in GEOMETRY_LAYERS
     if page is None:
         page = 100 if with_geometry else 500
+
+    expected = service_count(layer)
     feats = []
     off = 0
     while True:
@@ -57,14 +66,29 @@ def fetch_layer(layer, page=None):
         if not with_geometry:
             fs = esri_table_to_geojson(d)["features"]
         feats.extend(fs)
-        print(f"L{layer} off={off} got={len(fs)} total={len(feats)}", flush=True)
+        print(f"L{layer} off={off} got={len(fs)} total={len(feats)} "
+              f"(exceededTransferLimit={d.get('exceededTransferLimit')})", flush=True)
+        etl = d.get("exceededTransferLimit")
+        if etl is False:
+            break
+        if etl is True:
+            off += len(fs) if fs else page
+            if off >= 4_000_000:  # absurd runaway guard
+                raise RuntimeError("pagination runaway")
+            continue
+        # etl None (older servers): fall back to short-page heuristic
         if not fs or len(fs) < page:
             break
         off += page
+
+    if expected is not None and len(feats) != expected:
+        raise RuntimeError(
+            f"download incomplete: got {len(feats)}, service reports {expected}")
+
     fc = {"type": "FeatureCollection", "features": feats}
     with open(os.path.join(OUTDIR, f"layer{layer}.geojson"), "w", encoding="utf-8") as f:
         json.dump(fc, f)
-    print(f"WROTE layer{layer}.geojson features={len(feats)}", flush=True)
+    print(f"WROTE layer{layer}.geojson features={len(feats)} (service count={expected})", flush=True)
     return len(feats)
 
 

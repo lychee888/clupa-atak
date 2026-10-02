@@ -1,15 +1,16 @@
-# CLUPA for ATAK (Ontario Crown Land Use Policy Areas) (Compiled 2026-10-01)
+# CLUPA for ATAK (Ontario Crown Land Use Policy Areas)
 
-Ready-to-import map data for [ATAK](https://atakwiki.org/) showing Ontario Crown
-Land Use Policy Area boundaries from the [Crown Land Use Policy Atlas
-(CLUPA)](https://www.ontario.ca/page/crown-land-use-policy-atlas), with optional
-per-area policy descriptions (land use intent, permitted uses and guidelines).
+Ready-to-import map data for [ATAK](https://atakwiki.org/) showing Ontario
+Crown Land Use Policy Area boundaries from the [Crown Land Use Policy Atlas
+(CLUPA)](https://www.ontario.ca/page/crown-land-use-policy-atlas), with
+optional per-area policy descriptions (land use intent, permitted uses and
+guidelines).
 
 Everything is built with Python 3 stdlib only (no pip dependencies) from
 Ontario's open ArcGIS REST service. Data remains Crown copyright, Ontario
 Ministry of Natural Resources; open-data licensed (see Source & licence).
 
-## Import into ATAK
+## Import into ATAK (no build needed)
 
 Most users: just download a pre-built file from the
 [releases page](https://github.com/lychee888/clupa-atak/releases/latest) and
@@ -20,36 +21,35 @@ import it. Nothing to compile or run.
    (or just open/click the file).
 3. Pick which one:
    - **`clupa_boundaries.kmz`** (67 MB): all 1,261 Crown land use area
-     boundary polygons, named.
+     boundary polygons, named, with land use designation. Recommended for
+     most users.
    - **`clupa_full_with_descriptions.kmz`** (70 MB): same boundaries plus the
      full policy text per area (land use intent, permitted uses with
-     guidelines). Tap a polygon in ATAK to read its policy.
+     guidelines). Tap a polygon in ATAK to read its policy. Only pick this
+     if you specifically want the policy text loaded on device.
 
-## Repo layout
+Device note: the layer is ~10.8 million polygon vertices (Ontario is large
+and shape-rich). Import and first render take a while on phones; after the
+layer is drawn, panning and zooming stay interactive on a reasonably modern
+device. If a phone struggles, use the boundaries-only file or a regional
+subset.
 
-```
-assets/
-  fetch_layer.py           paginated downloader for the LIO open data service
-  distill_boundaries.py    trims raw boundary GeoJSON to useful fields
-  build_atak_kmz.py        builds the two KMZ products below
-dist/                      build outputs (gitignored - regenerate)
-  clupa_boundaries.kmz          boundaries only (~65 MB)
-  clupa_full_with_descriptions.kmz  boundaries + policy text (~68 MB)
-  boundaries.geojson            lean GeoJSON of all 1,261 areas
-docs/                      screenshots + imports notes
-```
+## What this map is (and is not)
 
-## Rebuilding from source data (optional, for reproducibility)
-
-```bash
-python assets/fetch_layer.py 5 8 13   # download boundaries + policy layers
-python assets/build_atak_kmz.py --descriptions   # full version
-python assets/build_atak_kmz.py                  # boundaries-only version
-```
-
-Then import into ATAK: **Import Manager > Files > Import from SD card**
-(or copy the .kmz onto the device and open it). Both files import the same
-way; descriptions are optional extras.
+- It shows the **land use policy area** boundaries Ontario publishes: what
+  each Crown land area is designated for (General Use, Conservation
+  Reserve, Enhanced Management, Provincial Park, and so on) plus the
+  policy text that governs it.
+- It is **not** an ownership map and **not** a survey-grade boundary
+  source. Ontario states this dataset must not be used as Crown-land,
+  private-land, or protected-area ownership boundaries. Always confirm
+  actual land status with Ontario before relying on it.
+- Coverage is Ontario only; other provinces publish their own Crown land
+  data separately.
+- Overlay policies (36 areas where a designation such as a conservation
+  reserve modifies the base policy) are a planned addition; the current
+  release covers the primary policy layer and may show incomplete guidance
+  where an overlay applies.
 
 ## What you get
 
@@ -60,8 +60,34 @@ way; descriptions are optional extras.
   `<description>` per polygon carrying the atlas policy text:
   land area description, land use intent, permitted uses preface/addendum,
   up to the full list of permitted uses with guidelines
-  (1,218 of 1,261 areas have published policy text; the rest are unnamed
-  administrative areas with no atlas entry).
+  (1,218 of 1,261 areas have published policy text; the other 43 areas are
+  parks/reserves whose policy lives outside the CLUPA policy table).
+
+## Repo layout
+
+```
+assets/
+  fetch_layer.py           paginated downloader (SSL verification on,
+                           exceededTransferLimit-aware, count-checked)
+  distill_boundaries.py    trims raw boundary GeoJSON attributes
+  build_atak_kmz.py        builds the two KMZ products below
+dist/                      build outputs (gitignored - regenerate)
+  clupa_boundaries.kmz          boundaries only (~70 MB)
+  clupa_full_with_descriptions.kmz  boundaries + policy text (~70 MB)
+docs/                      build/release notes
+```
+
+## Rebuilding from source data (optional)
+
+```bash
+python assets/fetch_layer.py 5 8 13   # boundary + policy + permitted-use layers
+python assets/build_atak_kmz.py --descriptions   # full version
+python assets/build_atak_kmz.py                  # boundaries-only version
+```
+
+The build fails loudly if inputs are missing or a download is truncated
+(record count checked against the service), so a "successful" build means
+all expected records came down.
 
 ## Source & licence
 

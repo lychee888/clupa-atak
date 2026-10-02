@@ -1,7 +1,8 @@
 """Distill raw CLUPA layer5 GeoJSON into a lean boundary file for ATAK.
 
 Keeps only the useful fields, renames them readably, and writes:
-  dist/boundaries.geojson   (lean, ~5-10 MB)
+  dist/boundaries.geojson   (same geometry as the raw file; only
+                             attribute fields are trimmed, so it stays large)
 """
 import json, os
 
