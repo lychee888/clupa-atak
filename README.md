@@ -39,11 +39,16 @@ boundary by up to ~100 m along coastlines and riverbanks (straight survey
 lines on land are kept exact). For navigation and orientation that is
 invisible; for legal boundary work use the full-detail files.
 
-Device note: the layer is ~10.8 million polygon vertices (Ontario is large
-and shape-rich). Import and first render take a while on phones; after the
-layer is drawn, panning and zooming stay interactive on a reasonably modern
-device. If a phone struggles, use the boundaries-only file or a regional
-subset.
+Device note: the two full-detail files are ~10.8 million polygon vertices
+(Ontario is large and shape-rich). Import and first render take a while on
+phones; after the layer is drawn, panning and zooming stay interactive on a
+reasonably modern device. The light file has no such constraint.
+
+Toggles and colors: all files group polygons in folders by designation, so
+ATAK's layer manager can show/hide General Use vs Enhanced Management vs
+Provincial Park vs Conservation Reserve independently. Colors: green =
+General Use, amber = Enhanced Management, blue = Provincial Park, purple =
+Conservation Reserve, grey = Other.
 
 ## What this map is (and is not)
 
